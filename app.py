@@ -45,28 +45,34 @@ def extract_text_from_pdf(uploaded_file):
 
 def analyze_and_verify_claims(document_text):
     """
-    Uses Gemini 2.5 Flash with live Google Search Grounding to pull and verify exactly 3 claims.
+    Uses Gemini 2.5 Flash with live Google Search Grounding to pull, 
+    verify, and format ALL major technical and statistical claims.
     """
     system_instruction = (
         "You are an expert investigative fact-checker and analytics engine. "
-        "Your task is to review the provided text, extract exactly 3 core distinct factual claims, "
-        "and use your Google Search tool to verify if they are accurate against current live data."
+        "Your task is to thoroughly review the provided document, extract ALL core factual claims "
+        "(such as statistics, dates, financial assertions, or technical figures), and use your "
+        "Google Search tool to verify if they match live, real-world data."
     )
 
     prompt = f"""
-    Analyze this text snippet. Extract exactly 3 major technical, economic, date-based, or statistical claims.
-    Use your built-in Google Search tool to check them against live web data.
+    Thoroughly analyze this text snippet. Extract every major technical, economic, date-based, or statistical claim present.
+    Use your built-in Google Search tool to cross-reference and verify each claim against live web data.
     
-    Format your response cleanly using markdown headings for each claim. Inside each claim section, 
-    prominently include one of these exact text labels so the interface highlights it correctly:
-    - **VERIFICATION STATUS: VERIFIED**
-    - **VERIFICATION STATUS: INACCURATE**
-    - **VERIFICATION STATUS: FALSE**
+    For EVERY claim you find, format your response EXACTLY like the block template below. Do not use markdown headings (###) for individual claims.
+    Separate every single field with its explicit bracketed label like this:
 
-    Include detailed sections explaining what the text claimed vs what live Google Search grounding discovered.
-    
+    [CLAIM_START]
+    [TEXT] Write the exact claim, stat, date, or figure extracted from the PDF here.
+    [STATUS] Write exactly ONE of these words: Verified, Inaccurate, or False.
+    - Use 'Verified' if it matches live real-world data.
+    - Use 'Inaccurate' if it contains outdated statistics or minor discrepancies.
+    - Use 'False' if there is no evidence found or if it is a complete lie.
+    [EVIDENCE] Explain what the live internet data discovered. Provide real-world current statistics, context, and proof.
+    [CLAIM_END]
+
     Document Text to Analyze:
-    \"\"\"{document_text[:6000]}\"\"\"
+    \"\"\"{document_text[:8000]}\"\"\"
     """
 
     try:
@@ -86,6 +92,36 @@ def analyze_and_verify_claims(document_text):
     except Exception as e:
         st.error(f"Error communicating with AI verification engine: {str(e)}")
         return None
+
+def parse_text_response(response_text):
+    """Safely extracts data segments without breaking on structural changes or missing metrics."""
+    claims_list = []
+    if not response_text:
+        return claims_list
+        
+    raw_blocks = response_text.split("[CLAIM_START]")
+    for block in raw_blocks:
+        if "[CLAIM_END]" in block:
+            try:
+                text_part = block.split("[TEXT]")[1].split("[STATUS]")[0].strip()
+                status_part = block.split("[STATUS]")[1].split("[EVIDENCE]")[0].strip()
+                evidence_part = block.split("[EVIDENCE]")[1].split("[CLAIM_END]")[0].strip()
+                
+                # Normalize values to safeguard against rendering exceptions
+                status_clean = "False"
+                if "Verified" in status_part:
+                    status_clean = "Verified"
+                elif "Inaccurate" in status_part:
+                    status_clean = "Inaccurate"
+                    
+                claims_list.append({
+                    "claim_text": text_part,
+                    "status": status_clean,
+                    "source_evidence": evidence_part
+                })
+            except Exception:
+                continue
+    return claims_list
 
 # ==========================================
 # 3. INTERFACE RENDERING & ORCHESTRATION
@@ -113,22 +149,38 @@ with col2:
         if st.button("🚀 Execute Automated Factcheck", type="primary"):
             with st.spinner("Extracting claims and querying live search engines..."):
                 raw_response = analyze_and_verify_claims(extracted_text)
+                parsed_claims = parse_text_response(raw_response)
             
-            if raw_response:
+            if parsed_claims:
                 st.balloons()
                 st.markdown("#### System Evaluation Matrix:")
                 
-                # Dynamic background styling box based on overall content findings
-                if "STATUS: FALSE" in raw_response:
-                    st.error("🚨 ALERT: Critical anomalies or false claims discovered in document text structure.")
-                elif "STATUS: INACCURATE" in raw_response:
-                    st.warning("⚠️ NOTICE: Outdated data strings or inconsistencies identified.")
+                # Check overall dataset health to display top header banner
+                all_statuses = [c["status"] for c in parsed_claims]
+                if "False" in all_statuses:
+                    st.error("🚨 ALERT: Critical anomalies or completely false claims discovered in document text structure.")
+                elif "Inaccurate" in all_statuses:
+                    st.warning("⚠️ NOTICE: Outdated data strings or technical inconsistencies identified.")
                 else:
-                    st.success("✨ VALIDATED: Document integrity checked against live index metrics.")
+                    st.success("✨ VALIDATED: All extracted document metrics successfully match live index data.")
                 
-                # Render the full, un-chopped analysis output window
-                st.markdown(raw_response)
+                # Render clean, customized markup panels for each claim found
+                for idx, claim in enumerate(parsed_claims, 1):
+                    curr_status = claim["status"]
+                    claim_text = claim["claim_text"]
+                    evidence = claim["source_evidence"]
+                    
+                    if curr_status == "Verified":
+                        st.success(f"**Claim #{idx}: VERIFIED**\n\n* **Extracted From PDF:** *\"{claim_text}\"*\n\n* **Live Search Evidence:** {evidence}")
+                    elif curr_status == "Inaccurate":
+                        st.warning(f"**Claim #{idx}: INACCURATE**\n\n* **Extracted From PDF:** *\"{claim_text}\"*\n\n* **Live Search Evidence:** {evidence}")
+                    else:
+                        st.error(f"**Claim #{idx}: FALSE**\n\n* **Extracted From PDF:** *\"{claim_text}\"*\n\n* **Live Search Evidence:** {evidence}")
             else:
-                st.error("Failed to generate an evaluation matrix. Please check your configuration and try again.")
+                if raw_response:
+                    st.markdown("#### Live Verification Matrix Logs:")
+                    st.info(raw_response)
+                else:
+                    st.error("Failed to extract data blocks. Please confirm your input data structural formatting and re-run.")
     else:
         st.write("Upload a target PDF document on the left panel to initialize the live analysis thread.")
