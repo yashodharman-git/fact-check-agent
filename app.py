@@ -12,7 +12,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# FIXED: Wrapped all custom CSS rules inside a single display-none container to prevent blank boxes from rendering
+# Wrapped all custom CSS rules inside a single display-none container to prevent blank boxes from rendering
 st.html("""
 <div style="display: none;">
     <style>
@@ -177,7 +177,6 @@ def parse_text_response(response_text):
 col1, col2 = st.columns([1, 2], gap="large")
 
 with col1:
-    # FIXED: Replaced standalone open-ended HTML tags with native markdown sections or complete card payloads
     st.markdown("### 📥 Document Dropzone")
     uploaded_file = st.file_uploader("Choose a PDF document", type=["pdf"], label_visibility="collapsed")
     
@@ -246,8 +245,21 @@ with col2:
                         badge_label = "❌ FALSE"
                         title_color = "#721c24"
 
-                    html_output = (
-                        '<div style="' + card_style + '">'
-                        '<span class="metric-badge" style="' + badge_style + '">' + badge_label + '</span>'
-                        '<p style="font-size: 1.05rem; font-weight: 600; margin-bottom: 6px; color: ' + title_color + ';">Claim #' + str(idx) + '</p>'
-                        '<div style="color: #212529; margin-bottom: 12px; font-style: italic; background: rgba(0,0,0,0.02); padding: 10px; border-radius: 6px; border-left
+                    # FIXED: Changed string concat to an unbroken triple-quote block string format to eliminate truncation bugs
+                    html_output = f"""
+                    <div style="{card_style}">
+                        <span class="metric-badge" style="{badge_style}">{badge_label}</span>
+                        <p style="font-size: 1.05rem; font-weight: 600; margin-bottom: 6px; color: {title_color};">Claim #{idx}</p>
+                        <div style="color: #212529; margin-bottom: 12px; font-style: italic; background: rgba(0,0,0,0.02); padding: 10px; border-radius: 6px; border-left: 3px solid #6c757d;">"{claim_text}"</div>
+                        <div style="font-size: 0.95rem; color: #1c1e21;"><strong>Live Search Evidence:</strong> {evidence}</div>
+                    </div>
+                    """
+                    st.html(html_output)
+            else:
+                if raw_response:
+                    st.markdown("#### Live Verification Matrix Logs:")
+                    st.info(raw_response)
+                else:
+                    st.error("Failed to extract data blocks. Please confirm your input data structural formatting and re-run.")
+    else:
+        st.write("Upload a target PDF document on the left panel to initialize the live analysis thread.")
