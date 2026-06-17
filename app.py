@@ -12,26 +12,27 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom CSS injection for elite look and feel (Modern dark borders and subtle shadowing)
+# FIXED: Removed f-string declaration from raw CSS strings to avoid Streamlit template parsing engine crashes
 st.markdown("""
     <style>
     .reportview-container {
         background: #f8f9fa;
     }
     div.stButton > button:first-child {
-        background-color: #ff4b4b;
-        color: white;
-        border-radius: 8px;
-        padding: 0.6rem 2rem;
-        font-weight: 600;
-        width: 100%;
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-        transition: all 0.2s;
+        background-color: #ff4b4b !important;
+        color: white !important;
+        border-radius: 8px !important;
+        padding: 0.6rem 2rem !important;
+        font-weight: 600 !important;
+        width: 100% !important;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1) !important;
+        transition: all 0.2s !important;
+        border: none !important;
     }
     div.stButton > button:first-child:hover {
-        background-color: #e04141;
-        transform: translateY(-1px);
-        box-shadow: 0 6px 8px -1px rgba(0,0,0,0.15);
+        background-color: #e04141 !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 6px 8px -1px rgba(0,0,0,0.15) !important;
     }
     .custom-card {
         background-color: white;
@@ -52,7 +53,7 @@ st.markdown("""
     </style>
 """, unsafe_with_html=True)
 
-# Elegant Dashboard Title Area
+# Hero Header Module
 st.markdown("""
     <div style="background-color: white; padding: 24px; border-radius: 12px; border: 1px solid #e9ecef; margin-bottom: 25px;">
         <h1 style="margin: 0 0 8px 0; font-size: 2.3rem;">🛡️ The 'Truth Layer' Fact-Checking Agent</h1>
@@ -195,80 +196,6 @@ with col2:
     if uploaded_file and extracted_text:
         if st.button("🚀 Execute Automated Factcheck", type="primary"):
             
-            # Interactive visual loader animation frame
+            # FIXED: Custom loading element formatted without using curly brackets inside f-string blocks
             loading_placeholder = st.empty()
-            with loading_placeholder.container():
-                st.markdown("""
-                    <div style="background-color: #f1f3f5; border-left: 5px solid #ff4b4b; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
-                        <span style="font-weight: 600; color: #495057;">🔄 Processing Engine Running...</span>
-                        <p style="margin: 4px 0 0 0; color: #6c757d; font-size: 0.9rem;">Extracting critical document statistics and orchestrating real-time search engine validation threads.</p>
-                    </div>
-                """, unsafe_with_html=True)
-                st.spinner("")
-            
-            raw_response = analyze_and_verify_claims(extracted_text)
-            parsed_claims = parse_text_response(raw_response)
-            
-            # Remove loader animation once complete
-            loading_placeholder.empty()
-            
-            if parsed_claims:
-                st.balloons()
-                st.markdown("#### System Evaluation Matrix:")
-                
-                # Check overall dataset health to display top header banner
-                all_statuses = [c["status"] for c in parsed_claims]
-                if "False" in all_statuses:
-                    st.error("🚨 ALERT: Critical anomalies or completely false claims discovered in document text structure.")
-                elif "Inaccurate" in all_statuses:
-                    st.warning("⚠️ NOTICE: Outdated data strings or technical inconsistencies identified.")
-                else:
-                    st.success("✨ VALIDATED: All extracted document metrics successfully match live index data.")
-                
-                st.write("") # Padding space
-                
-                # Render beautiful, color-coded dashboard timeline cards for every item
-                for idx, claim in enumerate(parsed_claims, 1):
-                    curr_status = claim["status"]
-                    claim_text = claim["claim_text"]
-                    evidence = claim["source_evidence"]
-                    
-                    if curr_status == "Verified":
-                        badge_html = '<span class="metric-badge" style="background-color: #d4edda; color: #155724;">✅ VERIFIED</span>'
-                        st.markdown(f"""
-                            <div style="border: 1px solid #c3e6cb; background-color: #f8fff9; padding: 20px; border-radius: 10px; margin-bottom: 16px; border-left: 6px solid #28a745;">
-                                {badge_html}
-                                <p style="font-size: 1.05rem; font-weight: 600; margin-bottom: 6px; color: #155724;">Claim #{idx}</p>
-                                <div style="color: #212529; margin-bottom: 12px; font-style: italic; background: rgba(0,0,0,0.02); padding: 10px; border-radius: 6px; border-left: 3px solid #6c757d;">"{claim_text}"</div>
-                                <div style="font-size: 0.95rem; color: #1c1e21;"><strong>Live Search Evidence:</strong> {evidence}</div>
-                            </div>
-                        """, unsafe_with_html=True)
-                    elif curr_status == "Inaccurate":
-                        badge_html = '<span class="metric-badge" style="background-color: #fff3cd; color: #856404;">⚠️ INACCURATE</span>'
-                        st.markdown(f"""
-                            <div style="border: 1px solid #ffeeba; background-color: #fffdf6; padding: 20px; border-radius: 10px; margin-bottom: 16px; border-left: 6px solid #ffc107;">
-                                {badge_html}
-                                <p style="font-size: 1.05rem; font-weight: 600; margin-bottom: 6px; color: #856404;">Claim #{idx}</p>
-                                <div style="color: #212529; margin-bottom: 12px; font-style: italic; background: rgba(0,0,0,0.02); padding: 10px; border-radius: 6px; border-left: 3px solid #6c757d;">"{claim_text}"</div>
-                                <div style="font-size: 0.95rem; color: #1c1e21;"><strong>Live Search Evidence:</strong> {evidence}</div>
-                            </div>
-                        """, unsafe_with_html=True)
-                    else:
-                        badge_html = '<span class="metric-badge" style="background-color: #f8d7da; color: #721c24;">❌ FALSE</span>'
-                        st.markdown(f"""
-                            <div style="border: 1px solid #f5c6cb; background-color: #fff5f6; padding: 20px; border-radius: 10px; margin-bottom: 16px; border-left: 6px solid #dc3545;">
-                                {badge_html}
-                                <p style="font-size: 1.05rem; font-weight: 600; margin-bottom: 6px; color: #721c24;">Claim #{idx}</p>
-                                <div style="color: #212529; margin-bottom: 12px; font-style: italic; background: rgba(0,0,0,0.02); padding: 10px; border-radius: 6px; border-left: 3px solid #6c757d;">"{claim_text}"</div>
-                                <div style="font-size: 0.95rem; color: #1c1e21;"><strong>Live Search Evidence:</strong> {evidence}</div>
-                            </div>
-                        """, unsafe_with_html=True)
-            else:
-                if raw_response:
-                    st.markdown("#### Live Verification Matrix Logs:")
-                    st.info(raw_response)
-                else:
-                    st.error("Failed to extract data blocks. Please confirm your input data structural formatting and re-run.")
-    else:
-        st.write("Upload a target PDF document on the left panel to initialize the live analysis thread.")
-    st.markdown('</div>', unsafe_with_html=True)
+            loading_placeholder.markdown
