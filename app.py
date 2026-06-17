@@ -27,11 +27,15 @@ else:
 # 2. HELPER FUNCTIONS (CORE ENGINE)
 # ==========================================
 def extract_text_from_pdf(uploaded_file):
-    """Safely extracts all visible text characters from an uploaded PDF file."""
+    """Safely extracts visible text characters from an uploaded PDF file with structural fallbacks."""
     try:
         reader = PdfReader(uploaded_file)
         full_text = ""
-        for page in reader.pages:
+        # Read a max of 15 pages to keep larger files from hitting processing timeouts
+        max_pages = min(len(reader.pages), 15)
+        
+        for i in range(max_pages):
+            page = reader.pages[i]
             text = page.extract_text()
             if text:
                 full_text += text + "\n"
@@ -103,16 +107,15 @@ def parse_text_response(response_text):
                 evidence_part = block.split("[EVIDENCE]")[1].split("[CLAIM_END]")[0].strip()
                 
                 # Dynamic normalization sanitization
+                status_clean = "False"
                 if "Verified" in status_part:
-                    status = "Verified"
+                    status_clean = "Verified"
                 elif "Inaccurate" in status_part:
-                    status = "Inaccurate"
-                else:
-                    status = "False"
+                    status_clean = "Inaccurate"
                     
                 claims_list.append({
                     "claim_text": text_part,
-                    "status": status,
+                    "status": status_clean,
                     "source_evidence": evidence_part
                 })
             except Exception:
@@ -152,16 +155,17 @@ with col2:
                 st.markdown("#### System Evaluation Matrix:")
                 
                 for idx, claim in enumerate(parsed_claims, 1):
-                    status = claim["status"]
+                    curr_status = claim["status"]
                     claim_text = claim["claim_text"]
                     evidence = claim["source_evidence"]
                     
-                    if status == "Verified":
+                    # Assigned fixed, matched variables to prevent template crashes
+                    if curr_status == "Verified":
                         color_hex = "#d4edda"
                         text_hex = "#155724"
                         border_hex = "#c3e6cb"
                         badge = "✅ VERIFIED"
-                    elif status == "Inaccurate":
+                    elif curr_status == "Inaccurate":
                         color_hex = "#fff3cd"
                         text_hex = "#856404"
                         border_hex = "#ffeeba"
@@ -180,7 +184,6 @@ with col2:
                     </div>
                     """, unsafe_with_html=True)
             else:
-                # Direct fallback text visualization layout if custom parser skips matching rules
                 if raw_response:
                     st.markdown("#### Live Verification Logs:")
                     st.info(raw_response)
