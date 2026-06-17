@@ -12,9 +12,53 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("🛡️ The 'Truth Layer' Fact-Checking Agent")
-st.markdown("### Upload a marketing or technical PDF to automatically extract, search, and verify live factual claims.")
-st.write("---")
+# Custom CSS injection for elite look and feel (Modern dark borders and subtle shadowing)
+st.markdown("""
+    <style>
+    .reportview-container {
+        background: #f8f9fa;
+    }
+    div.stButton > button:first-child {
+        background-color: #ff4b4b;
+        color: white;
+        border-radius: 8px;
+        padding: 0.6rem 2rem;
+        font-weight: 600;
+        width: 100%;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        transition: all 0.2s;
+    }
+    div.stButton > button:first-child:hover {
+        background-color: #e04141;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 8px -1px rgba(0,0,0,0.15);
+    }
+    .custom-card {
+        background-color: white;
+        border: 1px solid #e9ecef;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        margin-bottom: 20px;
+    }
+    .metric-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 12px;
+    }
+    </style>
+""", unsafe_with_html=True)
+
+# Elegant Dashboard Title Area
+st.markdown("""
+    <div style="background-color: white; padding: 24px; border-radius: 12px; border: 1px solid #e9ecef; margin-bottom: 25px;">
+        <h1 style="margin: 0 0 8px 0; font-size: 2.3rem;">🛡️ The 'Truth Layer' Fact-Checking Agent</h1>
+        <p style="color: #6c757d; margin: 0; font-size: 1.1rem;">Upload a marketing or technical PDF to automatically extract, search, and verify live factual claims against the real-time web index.</p>
+    </div>
+""", unsafe_with_html=True)
 
 # Initialize Gemini Client securely via Streamlit Secrets
 if "GEMINI_API_KEY" in st.secrets:
@@ -129,8 +173,9 @@ def parse_text_response(response_text):
 col1, col2 = st.columns([1, 2], gap="large")
 
 with col1:
+    st.markdown('<div class="custom-card">', unsafe_with_html=True)
     st.subheader("📥 Document Dropzone")
-    uploaded_file = st.file_uploader("Choose a PDF document", type=["pdf"])
+    uploaded_file = st.file_uploader("Choose a PDF document", type=["pdf"], label_visibility="collapsed")
     
     if uploaded_file:
         st.success(f"Successfully loaded: {uploaded_file.name}")
@@ -138,18 +183,34 @@ with col1:
             extracted_text = extract_text_from_pdf(uploaded_file)
         
         if extracted_text:
-            st.info(f"Character metric count: {len(extracted_text)} characters identified.")
+            st.info(f"📊 Character metric count: {len(extracted_text)} identified.")
             with st.expander("👀 View Extracted Raw Text"):
                 st.text_area("Raw Text Content", extracted_text, height=250, disabled=True)
+    st.markdown('</div>', unsafe_with_html=True)
 
 with col2:
+    st.markdown('<div class="custom-card">', unsafe_with_html=True)
     st.subheader("📊 Live 'Truth Layer' Analysis Dashboard")
     
     if uploaded_file and extracted_text:
         if st.button("🚀 Execute Automated Factcheck", type="primary"):
-            with st.spinner("Extracting claims and querying live search engines..."):
-                raw_response = analyze_and_verify_claims(extracted_text)
-                parsed_claims = parse_text_response(raw_response)
+            
+            # Interactive visual loader animation frame
+            loading_placeholder = st.empty()
+            with loading_placeholder.container():
+                st.markdown("""
+                    <div style="background-color: #f1f3f5; border-left: 5px solid #ff4b4b; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                        <span style="font-weight: 600; color: #495057;">🔄 Processing Engine Running...</span>
+                        <p style="margin: 4px 0 0 0; color: #6c757d; font-size: 0.9rem;">Extracting critical document statistics and orchestrating real-time search engine validation threads.</p>
+                    </div>
+                """, unsafe_with_html=True)
+                st.spinner("")
+            
+            raw_response = analyze_and_verify_claims(extracted_text)
+            parsed_claims = parse_text_response(raw_response)
+            
+            # Remove loader animation once complete
+            loading_placeholder.empty()
             
             if parsed_claims:
                 st.balloons()
@@ -164,18 +225,44 @@ with col2:
                 else:
                     st.success("✨ VALIDATED: All extracted document metrics successfully match live index data.")
                 
-                # Render clean, customized markup panels for each claim found
+                st.write("") # Padding space
+                
+                # Render beautiful, color-coded dashboard timeline cards for every item
                 for idx, claim in enumerate(parsed_claims, 1):
                     curr_status = claim["status"]
                     claim_text = claim["claim_text"]
                     evidence = claim["source_evidence"]
                     
                     if curr_status == "Verified":
-                        st.success(f"**Claim #{idx}: VERIFIED**\n\n* **Extracted From PDF:** *\"{claim_text}\"*\n\n* **Live Search Evidence:** {evidence}")
+                        badge_html = '<span class="metric-badge" style="background-color: #d4edda; color: #155724;">✅ VERIFIED</span>'
+                        st.markdown(f"""
+                            <div style="border: 1px solid #c3e6cb; background-color: #f8fff9; padding: 20px; border-radius: 10px; margin-bottom: 16px; border-left: 6px solid #28a745;">
+                                {badge_html}
+                                <p style="font-size: 1.05rem; font-weight: 600; margin-bottom: 6px; color: #155724;">Claim #{idx}</p>
+                                <div style="color: #212529; margin-bottom: 12px; font-style: italic; background: rgba(0,0,0,0.02); padding: 10px; border-radius: 6px; border-left: 3px solid #6c757d;">"{claim_text}"</div>
+                                <div style="font-size: 0.95rem; color: #1c1e21;"><strong>Live Search Evidence:</strong> {evidence}</div>
+                            </div>
+                        """, unsafe_with_html=True)
                     elif curr_status == "Inaccurate":
-                        st.warning(f"**Claim #{idx}: INACCURATE**\n\n* **Extracted From PDF:** *\"{claim_text}\"*\n\n* **Live Search Evidence:** {evidence}")
+                        badge_html = '<span class="metric-badge" style="background-color: #fff3cd; color: #856404;">⚠️ INACCURATE</span>'
+                        st.markdown(f"""
+                            <div style="border: 1px solid #ffeeba; background-color: #fffdf6; padding: 20px; border-radius: 10px; margin-bottom: 16px; border-left: 6px solid #ffc107;">
+                                {badge_html}
+                                <p style="font-size: 1.05rem; font-weight: 600; margin-bottom: 6px; color: #856404;">Claim #{idx}</p>
+                                <div style="color: #212529; margin-bottom: 12px; font-style: italic; background: rgba(0,0,0,0.02); padding: 10px; border-radius: 6px; border-left: 3px solid #6c757d;">"{claim_text}"</div>
+                                <div style="font-size: 0.95rem; color: #1c1e21;"><strong>Live Search Evidence:</strong> {evidence}</div>
+                            </div>
+                        """, unsafe_with_html=True)
                     else:
-                        st.error(f"**Claim #{idx}: FALSE**\n\n* **Extracted From PDF:** *\"{claim_text}\"*\n\n* **Live Search Evidence:** {evidence}")
+                        badge_html = '<span class="metric-badge" style="background-color: #f8d7da; color: #721c24;">❌ FALSE</span>'
+                        st.markdown(f"""
+                            <div style="border: 1px solid #f5c6cb; background-color: #fff5f6; padding: 20px; border-radius: 10px; margin-bottom: 16px; border-left: 6px solid #dc3545;">
+                                {badge_html}
+                                <p style="font-size: 1.05rem; font-weight: 600; margin-bottom: 6px; color: #721c24;">Claim #{idx}</p>
+                                <div style="color: #212529; margin-bottom: 12px; font-style: italic; background: rgba(0,0,0,0.02); padding: 10px; border-radius: 6px; border-left: 3px solid #6c757d;">"{claim_text}"</div>
+                                <div style="font-size: 0.95rem; color: #1c1e21;"><strong>Live Search Evidence:</strong> {evidence}</div>
+                            </div>
+                        """, unsafe_with_html=True)
             else:
                 if raw_response:
                     st.markdown("#### Live Verification Matrix Logs:")
@@ -184,3 +271,4 @@ with col2:
                     st.error("Failed to extract data blocks. Please confirm your input data structural formatting and re-run.")
     else:
         st.write("Upload a target PDF document on the left panel to initialize the live analysis thread.")
+    st.markdown('</div>', unsafe_with_html=True)
