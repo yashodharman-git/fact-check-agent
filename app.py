@@ -12,7 +12,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# Professional Header Section
 st.title("🛡️ The 'Truth Layer' Fact-Checking Agent")
 st.markdown("### Upload a marketing or technical PDF to automatically extract, search, and verify live factual claims.")
 st.write("---")
@@ -108,6 +107,7 @@ def parse_text_response(response_text):
                 status_part = block.split("[STATUS]")[1].split("[EVIDENCE]")[0].strip()
                 evidence_part = block.split("[EVIDENCE]")[1].split("[CLAIM_END]")[0].strip()
                 
+                # Normalize values to safeguard against rendering exceptions
                 status_clean = "False"
                 if "Verified" in status_part:
                     status_clean = "Verified"
@@ -146,23 +146,11 @@ with col2:
     st.subheader("📊 Live 'Truth Layer' Analysis Dashboard")
     
     if uploaded_file and extracted_text:
-        # Action button triggers full animation loop
         if st.button("🚀 Execute Automated Factcheck", type="primary"):
+            with st.spinner("Extracting claims and querying live search engines..."):
+                raw_response = analyze_and_verify_claims(extracted_text)
+                parsed_claims = parse_text_response(raw_response)
             
-            # 1. Processing State Animation
-            status_container = st.empty()
-            with status_container.container():
-                st.info("🔄 **Processing Agent Active:** Extracting structural text and compiling key statistical markers...")
-                st.spinner("Querying real-time search indexing models...")
-            
-            # Execute backend logic
-            raw_response = analyze_and_verify_claims(extracted_text)
-            parsed_claims = parse_text_response(raw_response)
-            
-            # Clear processing container before loading results
-            status_container.empty()
-            
-            # 2. Results Layout Delivery
             if parsed_claims:
                 st.balloons()
                 st.markdown("#### System Evaluation Matrix:")
