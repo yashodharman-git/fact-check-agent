@@ -57,14 +57,14 @@ def analyze_and_verify_claims(document_text):
     Analyze this text snippet. Extract exactly 3 major technical, economic, date-based, or statistical claims.
     Use your built-in Google Search tool to check them against live web data.
     
-    For each of the 3 claims, print out your assessment using this clean layout:
+    Format your response cleanly using markdown headings for each claim. Inside each claim section, 
+    prominently include one of these exact text labels so the interface highlights it correctly:
+    - **VERIFICATION STATUS: VERIFIED**
+    - **VERIFICATION STATUS: INACCURATE**
+    - **VERIFICATION STATUS: FALSE**
+
+    Include detailed sections explaining what the text claimed vs what live Google Search grounding discovered.
     
-    ### Claim Assessment
-    * **Claim Extracted:** [Write the exact wording or data point found in the document]
-    * **Verification Status:** [Write exactly ONE of these words: Verified OR Inaccurate OR False]
-    * **Live Search Evidence:** [Explain what the live internet data actually states. Provide current statistics as proof.]
-    
-    ---
     Document Text to Analyze:
     \"\"\"{document_text[:6000]}\"\"\"
     """
@@ -118,21 +118,17 @@ with col2:
                 st.balloons()
                 st.markdown("#### System Evaluation Matrix:")
                 
-                # Split the response by individual claims to create clean visual cards
-                blocks = raw_response.split("### Claim Assessment")
+                # Dynamic background styling box based on overall content findings
+                if "STATUS: FALSE" in raw_response:
+                    st.error("🚨 ALERT: Critical anomalies or false claims discovered in document text structure.")
+                elif "STATUS: INACCURATE" in raw_response:
+                    st.warning("⚠️ NOTICE: Outdated data strings or inconsistencies identified.")
+                else:
+                    st.success("✨ VALIDATED: Document integrity checked against live index metrics.")
                 
-                for block in blocks:
-                    if block.strip():
-                        # Read the text to determine the background styling dynamically
-                        if "Verified" in block:
-                            st.success(block)
-                        elif "Inaccurate" in block:
-                            st.warning(block)
-                        elif "False" in block:
-                            st.error(block)
-                        else:
-                            st.info(block)
+                # Render the full, un-chopped analysis output window
+                st.markdown(raw_response)
             else:
-                st.error("Failed to generate an evaluation matrix. Please check your credentials or network and try again.")
+                st.error("Failed to generate an evaluation matrix. Please check your configuration and try again.")
     else:
         st.write("Upload a target PDF document on the left panel to initialize the live analysis thread.")
