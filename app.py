@@ -12,45 +12,47 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom premium dashboard layout overrides
+# FIXED: Wrapped all custom CSS rules inside a single display-none container to prevent blank boxes from rendering
 st.html("""
-<style>
-.reportview-container {
-    background: #f8f9fa;
-}
-div.stButton > button:first-child {
-    background-color: #ff4b4b !important;
-    color: white !important;
-    border-radius: 8px !important;
-    padding: 0.6rem 2rem !important;
-    font-weight: 600 !important;
-    width: 100% !important;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1) !important;
-    transition: all 0.2s !important;
-    border: none !important;
-}
-div.stButton > button:first-child:hover {
-    background-color: #e04141 !important;
-    transform: translateY(-1px) !important;
-    box-shadow: 0 6px 8px -1px rgba(0,0,0,0.15) !important;
-}
-.custom-card {
-    background-color: white;
-    border: 1px solid #e9ecef;
-    padding: 24px;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-    margin-bottom: 20px;
-}
-.metric-badge {
-    display: inline-block;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    margin-bottom: 12px;
-}
-</style>
+<div style="display: none;">
+    <style>
+    .reportview-container {
+        background: #f8f9fa;
+    }
+    div.stButton > button:first-child {
+        background-color: #ff4b4b !important;
+        color: white !important;
+        border-radius: 8px !important;
+        padding: 0.6rem 2rem !important;
+        font-weight: 600 !important;
+        width: 100% !important;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1) !important;
+        transition: all 0.2s !important;
+        border: none !important;
+    }
+    div.stButton > button:first-child:hover {
+        background-color: #e04141 !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 6px 8px -1px rgba(0,0,0,0.15) !important;
+    }
+    .custom-card {
+        background-color: white;
+        border: 1px solid #e9ecef;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        margin-bottom: 20px;
+    }
+    .metric-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 12px;
+    }
+    </style>
+</div>
 """)
 
 # Premium Dashboard Jumbotron Title Section
@@ -100,7 +102,6 @@ def analyze_and_verify_claims(document_text):
         "Google Search tool to verify if they match live, real-world data."
     )
 
-    # Base prompt string with a structural template placeholder tag
     base_prompt = """
     Thoroughly analyze this text snippet. Extract every major technical, economic, date-based, or statistical claim present.
     Use your built-in Google Search tool to cross-reference and verify each claim against live web data.
@@ -121,7 +122,6 @@ def analyze_and_verify_claims(document_text):
     \"\"\"DOCUMENT_TEXT_PLACEHOLDER\"\"\"
     """
     
-    # FIXED: Replaced brittle f-string template matching with exact string replacement configuration
     prompt = base_prompt.replace("DOCUMENT_TEXT_PLACEHOLDER", str(document_text[:8000]))
 
     try:
@@ -177,8 +177,8 @@ def parse_text_response(response_text):
 col1, col2 = st.columns([1, 2], gap="large")
 
 with col1:
-    st.html('<div class="custom-card">')
-    st.subheader("📥 Document Dropzone")
+    # FIXED: Replaced standalone open-ended HTML tags with native markdown sections or complete card payloads
+    st.markdown("### 📥 Document Dropzone")
     uploaded_file = st.file_uploader("Choose a PDF document", type=["pdf"], label_visibility="collapsed")
     
     if uploaded_file:
@@ -190,11 +190,9 @@ with col1:
             st.info(f"📊 Character metric count: {len(extracted_text)} identified.")
             with st.expander("👀 View Extracted Raw Text"):
                 st.text_area("Raw Text Content", extracted_text, height=250, disabled=True)
-    st.html('</div>')
 
 with col2:
-    st.html('<div class="custom-card">')
-    st.subheader("📊 Live 'Truth Layer' Analysis Dashboard")
+    st.markdown("### 📊 Live 'Truth Layer' Analysis Dashboard")
     
     if uploaded_file and extracted_text:
         if st.button("🚀 Execute Automated Factcheck", type="primary"):
@@ -252,17 +250,4 @@ with col2:
                         '<div style="' + card_style + '">'
                         '<span class="metric-badge" style="' + badge_style + '">' + badge_label + '</span>'
                         '<p style="font-size: 1.05rem; font-weight: 600; margin-bottom: 6px; color: ' + title_color + ';">Claim #' + str(idx) + '</p>'
-                        '<div style="color: #212529; margin-bottom: 12px; font-style: italic; background: rgba(0,0,0,0.02); padding: 10px; border-radius: 6px; border-left: 3px solid #6c757d;">"' + claim_text + '"</div>'
-                        '<div style="font-size: 0.95rem; color: #1c1e21;"><strong>Live Search Evidence:</strong> ' + evidence + '</div>'
-                        '</div>'
-                    )
-                    st.html(html_output)
-            else:
-                if raw_response:
-                    st.markdown("#### Live Verification Matrix Logs:")
-                    st.info(raw_response)
-                else:
-                    st.error("Failed to extract data blocks. Please confirm your input data structural formatting and re-run.")
-    else:
-        st.write("Upload a target PDF document on the left panel to initialize the live analysis thread.")
-    st.html('</div>')
+                        '<div style="color: #212529; margin-bottom: 12px; font-style: italic; background: rgba(0,0,0,0.02); padding: 10px; border-radius: 6px; border-left
